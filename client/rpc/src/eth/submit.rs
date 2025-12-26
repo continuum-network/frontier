@@ -155,28 +155,31 @@ where
 			.await
 	}
 
-	pub async fn send_raw_transaction(&self, bytes: Bytes) -> RpcResult<H256> {
-		let bytes = bytes.into_vec();
-		if bytes.is_empty() {
-			return Err(internal_err("transaction data is empty"));
-		}
+	// QChain: Commented out - we provide our own unified handler that supports multicurve
+	// See qchain/node/src/rpc/eth_unified.rs
+	// pub async fn send_raw_transaction(&self, bytes: Bytes) -> RpcResult<H256> {
+	// 	let bytes = bytes.into_vec();
+	// 	if bytes.is_empty() {
+	// 		return Err(internal_err("transaction data is empty"));
+	// 	}
+	//
+	// 	let transaction: ethereum::TransactionV2 =
+	// 		match ethereum::EnvelopedDecodable::decode(&bytes) {
+	// 			Ok(transaction) => transaction,
+	// 			Err(_) => return Err(internal_err("decode transaction failed")),
+	// 		};
+	// 	let transaction_hash = transaction.hash();
+	//
+	// 	let block_hash = self.client.info().best_hash;
+	// 	let extrinsic = self.convert_transaction(block_hash, transaction)?;
+	//
+	// 	self.pool
+	// 		.submit_one(block_hash, TransactionSource::Local, extrinsic)
+	// 		.map_ok(move |_| transaction_hash)
+	// 		.map_err(|err| internal_err(format::Geth::pool_error(err)))
+	// 		.await
+	// }
 
-		let transaction: ethereum::TransactionV2 =
-			match ethereum::EnvelopedDecodable::decode(&bytes) {
-				Ok(transaction) => transaction,
-				Err(_) => return Err(internal_err("decode transaction failed")),
-			};
-		let transaction_hash = transaction.hash();
-
-		let block_hash = self.client.info().best_hash;
-		let extrinsic = self.convert_transaction(block_hash, transaction)?;
-
-		self.pool
-			.submit_one(block_hash, TransactionSource::Local, extrinsic)
-			.map_ok(move |_| transaction_hash)
-			.map_err(|err| internal_err(format::Geth::pool_error(err)))
-			.await
-	}
 
 	fn convert_transaction(
 		&self,

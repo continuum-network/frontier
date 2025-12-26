@@ -538,9 +538,10 @@ where
 		self.send_transaction(request).await
 	}
 
-	async fn send_raw_transaction(&self, bytes: Bytes) -> RpcResult<H256> {
-		self.send_raw_transaction(bytes).await
-	}
+	// QChain: Commented out - we provide our own unified handler that supports multicurve
+	// async fn send_raw_transaction(&self, bytes: Bytes) -> RpcResult<H256> {
+	// 	self.send_raw_transaction(bytes).await
+	// }
 }
 
 fn rich_block_build(

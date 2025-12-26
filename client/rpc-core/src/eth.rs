@@ -257,9 +257,10 @@ pub trait EthApi {
 	#[method(name = "eth_sendTransaction")]
 	async fn send_transaction(&self, request: TransactionRequest) -> RpcResult<H256>;
 
-	/// Sends signed transaction, returning its hash.
-	#[method(name = "eth_sendRawTransaction")]
-	async fn send_raw_transaction(&self, bytes: Bytes) -> RpcResult<H256>;
+	// QChain: Commented out - we provide our own unified handler that supports multicurve
+	// /// Sends signed transaction, returning its hash.
+	// #[method(name = "eth_sendRawTransaction")]
+	// async fn send_raw_transaction(&self, bytes: Bytes) -> RpcResult<H256>;
 }
 
 /// Eth filters rpc api (polling).
