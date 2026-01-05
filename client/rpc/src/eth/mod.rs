@@ -538,9 +538,7 @@ where
 		self.send_transaction(request).await
 	}
 
-	async fn send_raw_transaction(&self, bytes: Bytes) -> RpcResult<H256> {
-		self.send_raw_transaction(bytes).await
-	}
+	// NOTE: send_raw_transaction removed - provided by QChain's UnifiedEth
 }
 
 fn rich_block_build(
