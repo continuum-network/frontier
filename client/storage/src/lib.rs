@@ -65,7 +65,7 @@ where
 	BE: Backend<B> + 'static,
 {
 	fn account_code_at(&self, at: B::Hash, address: Address) -> Option<Vec<u8>> {
-		match self.querier.storage_schema(at) {
+		let code = match self.querier.storage_schema(at) {
 			Some(EthereumStorageSchema::V1) => {
 				SchemaV1StorageOverrideRef::new(&self.querier).account_code_at(at, address)
 			}
@@ -76,7 +76,18 @@ where
 				SchemaV3StorageOverrideRef::new(&self.querier).account_code_at(at, address)
 			}
 			None => self.fallback.account_code_at(at, address),
+		};
+		// Schema-based lookups read raw storage and miss precompiles (which
+		// have no AccountCodes entry). Fall through to the runtime API so
+		// that precompile addresses return their synthetic dummy bytecode.
+		if code.as_ref().map_or(true, |c| c.is_empty()) {
+			if let Some(fallback_code) = self.fallback.account_code_at(at, address) {
+				if !fallback_code.is_empty() {
+					return Some(fallback_code);
+				}
+			}
 		}
+		code
 	}
 
 	fn account_storage_at(&self, at: B::Hash, address: Address, index: U256) -> Option<H256> {

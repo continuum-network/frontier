@@ -54,6 +54,20 @@ use crate::{
 	FeeCalculator, OnChargeEVMTransaction, OnCreate, Pallet, RunnerError,
 };
 
+/// Dummy bytecode returned for precompile addresses.
+///
+/// `PUSH1 0x00 PUSH1 0x00 REVERT` — ensures EXTCODESIZE returns non-zero
+/// for precompiles while reverting if the EVM ever tries to execute this
+/// bytecode directly (which should never happen for precompiles).
+const PRECOMPILE_DUMMY_CODE: [u8; 5] = [0x60, 0x00, 0x60, 0x00, 0xfd];
+
+fn is_precompile_address<T: Config>(address: H160) -> bool {
+	matches!(
+		T::PrecompilesValue::get().is_precompile(address, u64::MAX),
+		IsPrecompileResult::Answer { is_precompile: true, .. }
+	)
+}
+
 #[cfg(feature = "forbid-evm-reentrancy")]
 environmental::environmental!(IN_EVM: bool);
 
@@ -861,7 +875,11 @@ where
 	}
 
 	fn code(&self, address: H160) -> Vec<u8> {
-		<AccountCodes<T>>::get(address)
+		let code = <AccountCodes<T>>::get(address);
+		if code.is_empty() && is_precompile_address::<T>(address) {
+			return PRECOMPILE_DUMMY_CODE.to_vec();
+		}
+		code
 	}
 
 	fn storage(&self, address: H160, index: H256) -> H256 {
@@ -1038,11 +1056,19 @@ where
 	}
 
 	fn code_size(&self, address: H160) -> U256 {
-		U256::from(<Pallet<T>>::account_code_metadata(address).size)
+		let size = <Pallet<T>>::account_code_metadata(address).size;
+		if size == 0 && is_precompile_address::<T>(address) {
+			return U256::from(PRECOMPILE_DUMMY_CODE.len());
+		}
+		U256::from(size)
 	}
 
 	fn code_hash(&self, address: H160) -> H256 {
-		<Pallet<T>>::account_code_metadata(address).hash
+		let meta = <Pallet<T>>::account_code_metadata(address);
+		if meta.size == 0 && is_precompile_address::<T>(address) {
+			return H256::from(sp_io::hashing::keccak_256(&PRECOMPILE_DUMMY_CODE));
+		}
+		meta.hash
 	}
 
 	fn record_external_operation(&mut self, op: evm::ExternalOperation) -> Result<(), ExitError> {
